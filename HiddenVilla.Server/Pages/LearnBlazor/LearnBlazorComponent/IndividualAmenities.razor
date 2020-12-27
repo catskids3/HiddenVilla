@@ -1,0 +1,27 @@
+﻿<div class="bg-light border p-2 col-5 offset-1" @onclick="(args) => RoomAmenitySelectionChanged(args, Amenities.Name)">
+	<h4 class="text-secondary">Amenities - @Amenities.Id</h4>
+
+	@Amenities.Name<br />
+	@Amenities.Description<br />
+	RF from Parent - @RenderFragment1 @RenderFragment2 
+</div>
+
+@code {
+	[Parameter]
+	public BlazorAmenities Amenities { get; set; }
+
+	[Parameter]
+	public EventCallback<string> OnAmenitySelection { get; set; }
+
+	[Parameter]
+	public RenderFragment RenderFragment1 { get; set; }
+
+	[Parameter]
+	public RenderFragment RenderFragment2 { get; set; }
+
+	protected async Task RoomAmenitySelectionChanged(MouseEventArgs e, string name)
+	{
+		await OnAmenitySelection.InvokeAsync((string)name);
+	}
+}
+

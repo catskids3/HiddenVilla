@@ -1,0 +1,106 @@
+﻿@page "/lifecycle" 
+@using System.Threading 
+
+<h3>Lifecycle</h3>
+
+<div class="border">
+	<LifecycleComponent CountValue="@currentCount"/>
+</div>
+
+<p>Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<br/>@Count<button @onclick="StartCountdown">Start Countdown</button>
+<br/>
+@foreach(var item in EventType)
+{
+	@item
+<hr/>
+}
+
+@code {
+	private int currentCount = 0;
+	List<string> EventType = new List<string>();
+	private int Count { get; set; } = 5;
+
+	private void IncrementCount()
+	{
+		currentCount++;
+	}
+
+	// Executed when the component is completely loaded.
+	protected override void OnInitialized()
+	{
+		EventType.Add("OnInitialized is called");
+	}
+
+	// Executed when the component is completely loaded.
+	protected override async Task OnInitializedAsync()
+	{
+		EventType.Add("OnInitializedAsync is called");
+		await Task.Delay(1000);
+	}
+
+	// When a component is first initialized, and each time new or updated
+	// parameters are received from parent in the render tree
+	protected override void OnParametersSet()
+	{
+		EventType.Add("OnParametersSet is called");
+	}
+
+	// When a component is first initialized, and each time new or updated
+	// parameters are received from parent in the render tree
+	protected override async Task OnParametersSetAsync()
+	{
+		EventType.Add("OnParametersSetAsync is called");
+		// await Task.Delay(1000);
+	}
+
+	// Called after each render of the component.
+	// Good for executing 3rd party JS code.
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if(firstRender)
+		{
+			currentCount = 111;
+		}
+		else
+		{
+			currentCount = 999;
+		}
+		EventType.Add("OnAfterRender is called");
+	}
+
+	// Called after each render of the component.
+	// Good for executing 3rd party JS code.
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		EventType.Add("OnAfterRenderAsync is called");
+		// await Task.Delay(1000);
+	}
+
+	// ShoudRender()
+	// This method returns a Boolean value, if true, it refresh's the UI, otherwise changes are not
+	// sent to UI.
+	protected override bool ShouldRender()
+	{
+		EventType.Add("ShouldRender is called");
+		return true;
+	}
+
+	//StateHasChange()
+	// Notifies the component that its state has changed.
+	void StartCountdown()
+	{
+		var timer = new Timer(TimeCallback, null, 1000, 1000);
+	}
+
+	void TimeCallback(object state)
+	{
+		if(Count > 0)
+		{
+			Count--;
+			InvokeAsync(StateHasChanged);
+		}
+	}
+}
