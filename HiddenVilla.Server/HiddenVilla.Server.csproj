@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HiddenVilla.Business\HiddenVilla.Business.csproj" />
+    <ProjectReference Include="..\HiddenVilla.Common\HiddenVilla.Common.csproj" />
     <ProjectReference Include="..\HiddenVilla.DataAccess\HiddenVilla.DataAccess.csproj" />
     <ProjectReference Include="..\HiddenVilla.Models\HiddenVilla.Models.csproj" />
   </ItemGroup>

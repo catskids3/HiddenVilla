@@ -1,4 +1,5 @@
 ﻿@page "/hotel-amenity"
+@attribute [Authorize(Roles = Common.SD.Role_Admin)]
 
 <div class="row mt-4">
 	<div class="col-6">
@@ -35,7 +36,8 @@
 								<button class="btn btn-danger" @onclick="() => HandleDelete(amenity.Id)">Delete</button>
 							</td>
 
-						</tr> 
+						</tr>
+
 					}
 				}
 				else
@@ -56,44 +58,44 @@
 @inject NavigationManager NavigationManager
 
 @code
-{ 
+{
 	internal IEnumerable<HotelAmenityDTO> HotelAmenities { get; set; } = new List<HotelAmenityDTO>();
 
-			internal int? DeleteAmenityId { get; set; } = null;
-			private bool IsProcessing { get; set; } = false;
+	internal int? DeleteAmenityId { get; set; } = null;
+	private bool IsProcessing { get; set; } = false;
 
 
-			protected override async Task OnInitializedAsync()
-			{
+	protected override async Task OnInitializedAsync()
+	{
 
-				HotelAmenities = await AmenityRepository.GetAllHotelAmenity();
-			}
-
-			public async Task HandleDelete(int amenityId)
-			{
-				DeleteAmenityId = amenityId;
-				await JsRuntime.InvokeVoidAsync("ShowDeleteConfirmationModal");
-			}
-
-			public async Task ConfirmDelete_Click(bool isConfirmed)
-			{
-				IsProcessing = true;
-				if (isConfirmed && DeleteAmenityId != null)
-				{
-					try
-					{
-						var result = await AmenityRepository.DeleteHotelAmenity(DeleteAmenityId.Value, "");
-						await JsRuntime.ToastrSuccess("Amenity Deleted successfully");
-					}
-					catch (Exception e)
-					{
-						await JsRuntime.ToastrError(e.Message);
-					}
-					HotelAmenities = await AmenityRepository.GetAllHotelAmenity();
-
-				}
-
-				await JsRuntime.InvokeVoidAsync("HideDeleteConfirmationModal");
-				IsProcessing = false;
-			} 
+		HotelAmenities = await AmenityRepository.GetAllHotelAmenity();
 	}
+
+	public async Task HandleDelete(int amenityId)
+	{
+		DeleteAmenityId = amenityId;
+		await JsRuntime.InvokeVoidAsync("ShowDeleteConfirmationModal");
+	}
+
+	public async Task ConfirmDelete_Click(bool isConfirmed)
+	{
+		IsProcessing = true;
+		if (isConfirmed && DeleteAmenityId != null)
+		{
+			try
+			{
+				var result = await AmenityRepository.DeleteHotelAmenity(DeleteAmenityId.Value, "");
+				await JsRuntime.ToastrSuccess("Amenity Deleted successfully");
+			}
+			catch (Exception e)
+			{
+				await JsRuntime.ToastrError(e.Message);
+			}
+			HotelAmenities = await AmenityRepository.GetAllHotelAmenity();
+
+		}
+
+		await JsRuntime.InvokeVoidAsync("HideDeleteConfirmationModal");
+		IsProcessing = false;
+	}
+}
