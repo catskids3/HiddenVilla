@@ -3,18 +3,15 @@ using HiddenVilla.Business.Repository;
 using HiddenVilla.Business.Repository.IRepository;
 using HiddenVilla.DataAccess.Data;
 using HiddenVilla.Server.Data;
+using HiddenVilla.Server.Service;
+using HiddenVilla.Server.Service.IService;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HiddenVilla.Server
 {
@@ -35,7 +32,11 @@ namespace HiddenVilla.Server
 			options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 			services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 			services.AddScoped<IHotelRoomRepository, HotelRoomRepository>();
+			services.AddScoped<IHotelImagesRepository, HotelImagesRepository>();
+			services.AddScoped<IAmenityRepository, AmenityRepository>();
+			services.AddScoped<IFileUpload, FileUpload>();
 			services.AddRazorPages();
+			services.AddHttpContextAccessor();
 			services.AddServerSideBlazor();
 			services.AddSingleton<WeatherForecastService>();
 		}
@@ -59,8 +60,12 @@ namespace HiddenVilla.Server
 
 			app.UseRouting();
 
+			app.UseAuthentication();
+			app.UseAuthorization();
+
 			app.UseEndpoints(endpoints =>
 			{
+				endpoints.MapRazorPages();
 				endpoints.MapBlazorHub();
 				endpoints.MapFallbackToPage("/_Host");
 			});
