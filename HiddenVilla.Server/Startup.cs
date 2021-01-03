@@ -38,6 +38,7 @@ namespace HiddenVilla.Server
 				.AddDefaultUI();
 
 			services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+			services.AddScoped<IDbInitializer, DbInitializer>();
 			services.AddScoped<IHotelRoomRepository, HotelRoomRepository>();
 			services.AddScoped<IHotelImagesRepository, HotelImagesRepository>();
 			services.AddScoped<IAmenityRepository, AmenityRepository>();
@@ -49,7 +50,7 @@ namespace HiddenVilla.Server
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+		public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IDbInitializer dbInitializer)
 		{
 			if (env.IsDevelopment())
 			{
@@ -69,6 +70,8 @@ namespace HiddenVilla.Server
 
 			app.UseAuthentication();
 			app.UseAuthorization();
+
+			dbInitializer.Initialize();
 
 			app.UseEndpoints(endpoints =>
 			{
