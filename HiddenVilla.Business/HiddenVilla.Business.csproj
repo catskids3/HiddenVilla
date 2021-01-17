@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HiddenVilla.Common\HiddenVilla.Common.csproj" />
     <ProjectReference Include="..\HiddenVilla.DataAccess\HiddenVilla.DataAccess.csproj" />
     <ProjectReference Include="..\HiddenVilla.Models\HiddenVilla.Models.csproj" />
   </ItemGroup>
