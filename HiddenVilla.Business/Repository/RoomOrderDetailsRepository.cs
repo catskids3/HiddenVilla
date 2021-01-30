@@ -81,22 +81,22 @@ namespace HiddenVilla.Business.Repository
 			}
 		}
 
-		public async Task<bool> IsRoomBooked(int RoomId, DateTime checkInDate, DateTime checkOutDate)
+		public async Task<RoomOrderDetailsDTO> MarkPaymentSuccessful(int id)
 		{
-			var existingBooking = await _db.RoomOrderDetails
-				.Where(x => x.RoomId == RoomId && x.IsPaymentSuccessful &&
-				// check if checkin date that user wants does not fall in between any dates for room that is booked
-				(checkInDate < x.CheckOutDate && checkInDate.Date > x.CheckInDate
-				// check if checkout date that user wants does not fall in between any dates for room that is booked
-				|| checkOutDate > x.CheckInDate.Date && checkInDate.Date < x.CheckInDate.Date
-				)).FirstOrDefaultAsync();
-
-			return existingBooking != null;
-		}
-
-		public Task<RoomOrderDetailsDTO> MarkPaymentSuccessful(int id)
-		{
-			throw new NotImplementedException();
+			var data = await _db.RoomOrderDetails.FindAsync(id);
+			if(data == null)
+			{
+				return null;
+			}
+			if(!data.IsPaymentSuccessful)
+			{
+				data.IsPaymentSuccessful = true;
+				data.Status = SD.Status_Booked;
+				var markPaymentSuccessful = _db.RoomOrderDetails.Update(data);
+				await _db.SaveChangesAsync();
+				return _mapper.Map<RoomOrderDetails, RoomOrderDetailsDTO>(markPaymentSuccessful.Entity);
+			}
+			return new RoomOrderDetailsDTO();
 		}
 
 		public Task<bool> UpdateOrderStatus(int RoomOrderId, string status)

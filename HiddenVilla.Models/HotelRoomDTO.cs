@@ -31,5 +31,7 @@ namespace HiddenVilla.Models
 		public virtual ICollection<HotelRoomImageDTO> HotelRoomImages { get; set; }
 
 		public List<string> ImageUrls { get; set; }
+
+		public bool IsBooked { get; set; }
 	}
 }

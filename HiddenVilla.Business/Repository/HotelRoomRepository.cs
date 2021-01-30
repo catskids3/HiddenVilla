@@ -57,6 +57,14 @@ namespace HiddenVilla.Business.Repository
 				IEnumerable<HotelRoomDTO> hotelRoomDTOs =
 					_mapper.Map<IEnumerable<HotelRoom>, IEnumerable<HotelRoomDTO>>(_db.HotelRooms.Include(x => x.HotelRoomImages));
 
+				if (!string.IsNullOrEmpty(checkInDateStr) && !string.IsNullOrEmpty(checkOutDateStr))
+				{
+					foreach (HotelRoomDTO hotelRoom in hotelRoomDTOs)
+					{
+						hotelRoom.IsBooked = await IsRoomBooked(hotelRoom.Id, checkInDateStr, checkOutDateStr);
+					}
+				}
+
 				return hotelRoomDTOs;
 			}
 			catch (Exception ex)
@@ -73,6 +81,11 @@ namespace HiddenVilla.Business.Repository
 					await _db.HotelRooms
 						.Include(x => x.HotelRoomImages)
 						.FirstOrDefaultAsync(x => x.Id == roomId));
+
+				if(!string.IsNullOrEmpty(checkInDateStr) && !string.IsNullOrEmpty(checkOutDateStr))
+				{
+					hotelRoom.IsBooked = await IsRoomBooked(roomId, checkInDateStr, checkOutDateStr);
+				}
 
 				return hotelRoom;
 			}
@@ -133,6 +146,37 @@ namespace HiddenVilla.Business.Repository
 			catch(Exception ex)
 			{
 				return null;
+			}
+		}
+
+		public async Task<bool> IsRoomBooked(int RoomId, string checkInDateStr, string checkOutDateStr)
+		{
+			try
+			{
+				if(!string.IsNullOrEmpty(checkOutDateStr) && !string.IsNullOrEmpty(checkInDateStr))
+				{
+					DateTime checkInDate = DateTime.ParseExact(checkInDateStr, "MM/dd/yyyy", null);
+					DateTime checkOutDate = DateTime.ParseExact(checkOutDateStr, "MM/dd/yyyy", null);
+
+					var existingBooking = await _db.RoomOrderDetails
+						.Where(x => x.RoomId == RoomId && x.IsPaymentSuccessful &&
+						// check if checkin date that user wants does not fall in between any dates for room that is booked
+						((checkInDate < x.CheckOutDate && checkInDate.Date >= x.CheckInDate)
+						// check if checkout date that user wants does not fall in between any dates for room that is booked
+						|| (checkOutDate > x.CheckInDate.Date && checkInDate.Date <= x.CheckInDate.Date)
+						)).FirstOrDefaultAsync();
+
+					if(existingBooking != null)
+					{
+						return true;
+					}
+					return false;
+				}
+				return true;
+			}
+			catch(Exception ex)
+			{
+				throw ex;
 			}
 		}
 	}

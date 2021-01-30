@@ -1,5 +1,8 @@
 ﻿@page "/hotel/room-details/{Id:int}"
 
+@using Microsoft.AspNetCore.Authorization 
+@attribute [Authorize(Roles = SD.Role_Customer)]
+
 @if (HotelBooking?.OrderDetails?.HotelRoomDTO?.HotelRoomImages == null)
 {
 	<div class="spinner"></div>
@@ -20,13 +23,45 @@ else
 						<div id="" class="carousel slide mb-4 m-md-3 m-0 pt-3 pt-md-0" data-ride="carousel">
 							<div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
 								<ol class="carousel-indicators">
-									<li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
-									<li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+									@{
+										int imageIndex = 0;
+										int innerImageIndex = 0;
+									}
+									@foreach (var image in HotelBooking.OrderDetails.HotelRoomDTO.HotelRoomImages)
+									{
+										if (imageIndex == 0)
+										{
+											<li data-target="#carouselExampleIndicators"
+												data-slide-to="@imageIndex" class="active"></li>
+										}
+										else
+										{
+											<li data-target="#carouselExampleIndicators"
+												data-slide-to="@imageIndex"></li>
+										}
+										imageIndex++;
+									}
 								</ol>
 								<div class="carousel-inner">
-									<div class="carousel-item active">
-										<img class="d-block w-100" src="images/slide1.jpg" alt="First slide">
-									</div>
+									@foreach (var image in HotelBooking.OrderDetails.HotelRoomDTO.HotelRoomImages)
+									{
+										@if (innerImageIndex == 0)
+										{
+											<div class="carousel-item active">
+												<img class="d-block w-100" style="border-radius:20px"
+													 src="@image.RoomImageUrl" alt="First slide">
+											</div>
+										}
+										else
+										{
+											<div class="carousel-item">
+												<img class="d-block w-100" style="border-radius:20px"
+													 src="@image.RoomImageUrl" alt="First slide">
+											</div>
+										}
+
+										innerImageIndex++;
+									}
 								</div>
 								<a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
 									<span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -95,21 +130,28 @@ else
 					<div class="form-group">
 						<label class="text-warning">No. of nights</label>
 						<select class="form-control" value="@NoOfNights" @onchange="HandleNoOfNightsChange">
-								@for (var i = 1; i <= 10; i++)
+							@for (var i = 1; i <= 10; i++)
+							{
+								if (i == NoOfNights)
 								{
-									if (i == NoOfNights)
-									{
-										<option value="@i" selected="selected">@i</option>
-									}
-									else
-									{
-										<option value="@i">@i</option>
-									}
+									<option value="@i" selected="selected">@i</option>
 								}
-							</select>
+								else
+								{
+									<option value="@i">@i</option>
+								}
+							}
+						</select>
 					</div>
 					<div class="form-group">
-						<button type="submit" class="btn btn-success form-control">Checkout Now</button>
+						@if (HotelBooking.OrderDetails.HotelRoomDTO.IsBooked)
+						{
+							<input class="btn btn-secondary form-control" value="Sold Out" />
+						}
+						else
+						{
+							<button type="submit" class="btn btn-success form-control">Checkout Now</button>
+						}
 					</div>
 				</EditForm>
 			</div>
@@ -119,6 +161,8 @@ else
 @inject IJSRuntime jsRuntime
 @inject ILocalStorageService localStorage
 @inject IHotelRoomService hotelRoomService
+@inject IStripePaymentService stripPaymentService
+@inject IRoomOrderDetailsService roomOrderDetailsService
 
 @code {
 
@@ -133,7 +177,7 @@ else
 		try
 		{
 			// Use this to await so the debugger breakpoint will be hit
-			//await Task.Delay(5000);
+			await Task.Delay(5000);
 			HotelBooking.OrderDetails = new RoomOrderDetailsDTO();
 			if (Id != null)
 			{
@@ -176,6 +220,16 @@ else
 				}
 
 			}
+
+			if(await localStorage.GetItemAsync<UserDTO>(SD.Local_UserDetails) != null)
+			{
+				var userInfo = await localStorage.GetItemAsync<UserDTO>(SD.Local_UserDetails);
+				HotelBooking.OrderDetails.UserId = userInfo.Id;
+				HotelBooking.OrderDetails.Name = userInfo.Name;
+				HotelBooking.OrderDetails.Email = userInfo.Email;
+				HotelBooking.OrderDetails.Phone = userInfo.PhoneNo;
+			}
+
 		}
 		catch (Exception e)
 		{
@@ -198,15 +252,40 @@ else
 
 	private async Task HandleCheckout()
 	{
-		if(!await HandleValidation())
+		if (!await HandleValidation())
 		{
 			return;
+		}
+		try
+		{
+			var paymentDTO = new StripePaymentDTO()
+			{
+				Amount = Convert.ToInt32(HotelBooking.OrderDetails.HotelRoomDTO.TotalAmount * 100),
+				ProductName = HotelBooking.OrderDetails.HotelRoomDTO.Name,
+				ReturnUrl = "/hotel/room-details/" + Id
+			};
+
+			var result = await stripPaymentService.CheckOut(paymentDTO);
+
+			HotelBooking.OrderDetails.StripeSessionId = result.Data.ToString();
+			HotelBooking.OrderDetails.RoomId = HotelBooking.OrderDetails.HotelRoomDTO.Id;
+			HotelBooking.OrderDetails.TotalCost = HotelBooking.OrderDetails.HotelRoomDTO.TotalAmount;
+
+			var roomOrderDetailsSaved = await roomOrderDetailsService.SaveRoomOrderDetails(HotelBooking.OrderDetails);
+
+			await localStorage.SetItemAsync(SD.Local_RoomOrderDetails, roomOrderDetailsSaved);
+
+			await jsRuntime.InvokeVoidAsync("redirectToCheckout", result.Data.ToString());
+		}
+		catch (Exception e)
+		{
+			await jsRuntime.ToastrError(e.Message);
 		}
 	}
 
 	private async Task<bool> HandleValidation()
 	{
-		if(string.IsNullOrEmpty(HotelBooking.OrderDetails.Name))
+		if (string.IsNullOrEmpty(HotelBooking.OrderDetails.Name))
 		{
 			await jsRuntime.ToastrError("Name cannot be empty");
 			return false;
